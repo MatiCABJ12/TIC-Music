@@ -2,6 +2,9 @@ import express from "express";
 const app = express();
 const port = 3000;
 
+import createUsuario from "./funciones.js";
+
+
 app.use(express.json());
 
 app.get("/", (_, res) => {
@@ -10,8 +13,8 @@ app.get("/", (_, res) => {
 
 /* ------------------- Rutas ------------------- */
 
-app.post("/crearusuario", funciones.createUsuario);
-app.get("/login", funciones.getToken);
+app.post("/crearusuario", createUsuario);
+app.get("/login", funciones.getMati);
 app.get("/escucho", funciones.getAlgo);
 
 const server = app.listen(port, () => {
