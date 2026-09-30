@@ -1,83 +1,155 @@
+import "dotenv/config";
 import { query } from "./database.js";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
 
 const createUsuario = async (req, res) => {
-    // Completar con la consulta que crea una canción
-    try{
-     const { userid, nombre, password } = req.body;
+    try {
+        const { nombre, password } = req.body;
 
+        if (!nombre || !password) {
+            return res.status(400).json({
+                error: "Faltan datos: nombre y contraseña son obligatorios"
+            });
+        }
 
-     if (!userid || !nombre || !password) {
-        return res.status(400).json({ error: 'Faltan datos: nombre, mail y contrasena son obligatorios' });
-      }
-    const passwordHasheada = await bcrypt.hash(password, 10);
+        const passwordHasheada = await bcrypt.hash(password, 10);
 
-    const result = await query("INSERT INTO usuario (id, nombre, password, escuchas) VALUES ($1, $2, $3, 0)", [userid, nombre, passwordHasheada]);
+        const result = await query(
+            `INSERT INTO usuario (nombre, password, escuchas)
+             VALUES ($1, $2, 0)
+             RETURNING id, nombre, escuchas`,
+            [nombre, passwordHasheada]
+        );
 
-    res.status(201).json(resultado.rows[0]);
-    
+        res.status(201).json(result.rows[0]);
 
-     // HASHEAR LA CONTRA Y JWTEAR, OSEA CREAR UN TOKEN PARA EL USUARIO (NO SE LO DAMOS POR AHORA, AUNQUE DEBERIAMOS)
-}
-catch (error) {
-    console.error(error);
-    if (error.code === '23505') {
-      return res.status(409).json({ error: 'Ese mail o nombre de usuario ya está registrado' });
+    } catch (error) {
+        console.error(error);
+
+        if (error.code === "23505") {
+            return res.status(409).json({
+                error: "Ese nombre de usuario ya está registrado"
+            });
+        }
+
+        res.status(500).json({
+            error: error.message
+        });
     }
-    res.status(500).json({ error: error.message });
-  }
+};
 
-
-
-}
-
-export {createUsuario};
-
+export { createUsuario };
 
 const getMati = async (req, res) => {
-    // COMPARAR CONTRASEÑA CON EL HASH Y DARLE EL TOKEN
-    
-    try{
-        const { userid, password } = req.body;
-        if (!userid || !password) {
-            return res.status(401).json({ error: 'Faltan datos: mail y password son obligatorios' });
-        }      
+    try {
+        const { nombre, password } = req.body;
 
-        const result = await query("SELECT id, password FROM usuario WHERE id = $1", [userid]);
+        if (!nombre || !password) {
+            return res.status(400).json({
+                error: "Faltan datos: nombre y contraseña son obligatorios"
+            });
+        }
 
-        if (resultado.rows.length === 0) {
-            return res.status(400).json({ error: 'Mail o contraseña incorrectos' });
-          }
+        const result = await query(
+            `SELECT id, nombre, password
+             FROM usuario
+             WHERE nombre = $1`,
+            [nombre]
+        );
 
-        const usuario = resultado.rows[0];
-        const contrasenaValida = await bcrypt.compare(password, usuario.password);
-      
+        if (result.rows.length === 0) {
+            return res.status(401).json({
+                error: "Nombre de usuario o contraseña incorrectos"
+            });
+        }
+
+        const usuario = result.rows[0];
+
+        const contrasenaValida = await bcrypt.compare(
+            password,
+            usuario.password
+        );
+
         if (!contrasenaValida) {
-            return res.status(401).json({ error: 'Contraseña incorrecta' });
-          }
+            return res.status(401).json({
+                error: "Nombre de usuario o contraseña incorrectos"
+            });
+        }
+
         
         const token = jwt.sign(
-            { id: usuario.id, nombre: usuario.nombre },
+            {
+                id: usuario.id,
+                nombre: usuario.nombre
+            },
             process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-          );
-      
-      
-          res.json({
+            {
+                expiresIn: "7d"
+            }
+        );
+
+        res.json({
             token,
             usuario: {
-              id_usuario: usuario.id_usuario,
-              nombre: usuario.nombre,
-              mail: usuario.mail,
-              puntos_totales: usuario.puntos_totales,
-            },
-          });
-      
-    }
-    catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-      } 
-     
-}
+                id: usuario.id,
+                nombre: usuario.nombre
+            }
+        });
 
-export {getMati};
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+export { getMati };
+
+const escucho = async (req, res) => {
+    const { token } = req.body;
+
+    if (!token) {
+        return res.status(401).json({
+            error: "Falta un token"
+        });
+    }
+
+    let verificacion;
+
+    try {
+        verificacion = jwt.verify(
+            token,
+            process.env.JWT_SECRET
+        );
+
+    } catch (error) {
+        return res.status(401).json({
+            error: "El token no ha sido verificado correctamente o ha expirado"
+        });
+    }
+
+    try {
+        const result = await query(
+            `SELECT c.id, c.nombre, e.reproducciones
+             FROM escucha e
+             JOIN cancion c ON c.id = e.cancion_id
+             WHERE e.usuario_id = $1`,
+            [verificacion.id]
+        );
+
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+export { escucho };
