@@ -19,7 +19,7 @@ const createUsuario = async (req, res) => {
         const result = await query(
             `INSERT INTO usuario (nombre, password, escuchas)
              VALUES ($1, $2, 0)
-             RETURNING id, nombre, escuchas`,
+             RETURNING nombre, escuchas`,
             [nombre, passwordHasheada]
         );
 
