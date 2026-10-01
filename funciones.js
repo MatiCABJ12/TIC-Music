@@ -93,7 +93,6 @@ const getMati = async (req, res) => {
         res.json({
             token,
             usuario: {
-                id: usuario.id,
                 nombre: usuario.nombre
             }
         });
