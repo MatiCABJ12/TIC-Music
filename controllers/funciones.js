@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { query } from "./database.js";
+import { query } from "../services/database.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
