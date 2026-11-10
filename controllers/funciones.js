@@ -270,5 +270,8 @@ const registrarEscucha = async (req, res) => {
 
 // CHEQUEA LOS NUMEROS DE ALGUNAS RESPUESTAS TIPO 409
 // LA ULTIMA FUNCION NO LA ENTENDI, VERIFICALA
+// FALTA EL EJERCICIO 6
+// HOSTEARLO EN VERCELL Y PONERLO LINDO
+//CHEQUEAR EL TEMA DE LOS ROLES
 
 export {  createUsuario, getMati, escucho, createCancion, updateCancion, deleteCancion, registrarEscucha };

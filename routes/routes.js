@@ -8,7 +8,7 @@ import {
     deleteCancion,
     registrarEscucha
 } from "../controllers/funciones.js";
-import { verifyToken, verifyAdmin } from "../middlewares/auth.middleware.js";
+import { verifyToken, verifyAdmin } from "../middlewares/middleware.js";
 
 const router = Router();
 
