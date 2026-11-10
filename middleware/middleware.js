@@ -1,4 +1,4 @@
-
+import jwt from "jsonwebtoken";
 
 
 export const verifyToken = async (req, res, next) => {
@@ -9,7 +9,7 @@ if (!authHeader)  {
 const token = authHeader.split(' ')[1];
 try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    req.user_id = payload.id; //modifica el req agregando el user id que viene en el token
+    req.user = payload; //modifica el req agregando todo lo que viene en el token (id, nombre, rol)
     next();
  } // Pasa al proximo middleware  
  catch (err) {
@@ -17,3 +17,10 @@ try {
     return res.status(401).send({error: 'Unauthorized'});
  }
 }
+
+export const verifyAdmin = (req, res, next) => {
+    if (req.user.rol !== "Admin") {
+        return res.status(403).send({ error: "Se necesita rol admin" });
+    }
+    next();
+};

@@ -53,7 +53,7 @@ const getMati = async (req, res) => {
         }
 
         const result = await query(
-            `SELECT id, nombre, password
+            `SELECT id, nombre, password, rol
              FROM usuario
              WHERE nombre = $1`,
             [nombre]
@@ -81,8 +81,9 @@ const getMati = async (req, res) => {
         
         const token = jwt.sign(
             {
-                id: usuario.id,
-                nombre: usuario.nombre
+             id: usuario.id,
+             nombre: usuario.nombre,
+             rol: usuario.rol
             },
             process.env.JWT_SECRET,
             {
@@ -93,8 +94,9 @@ const getMati = async (req, res) => {
         res.json({
             token,
             usuario: {
-                nombre: usuario.nombre
-            }
+            nombre: usuario.nombre,
+            rol: usuario.rol
+}
         });
 
     } catch (error) {
