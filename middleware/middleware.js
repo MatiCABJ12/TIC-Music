@@ -18,8 +18,11 @@ try {
  }
 }
 
+
+
+
 export const verifyAdmin = (req, res, next) => {
-    if (req.user.rol !== "Admin") {
+    if (req.user.rol !== "A") {
         return res.status(403).send({ error: "Se necesita rol admin" });
     }
     next();
