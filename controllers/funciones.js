@@ -1,18 +1,74 @@
 import "dotenv/config";
-import { query } from "../services/database.js";
 import * as usuarioService from "../services/usuarioService.js";
+import * as cancionService from "../services/cancionService.js";
+import * as escuchaService from "../services/escuchaService.js";
+
+
+const createUsuario = async (req, res) => {
+    try {
+        const { nombre, password } = req.body ?? {};
+
+        if (!nombre || !password) {
+            return res.status(400).json({
+                error: "Faltan datos: nombre y contraseña son obligatorios"
+            });
+        }
+
+        const usuario = await usuarioService.crearUsuario(nombre, password);
+
+        res.status(201).json(usuario);
+
+    } catch (error) {
+        console.error(error);
+
+        if (error.code === "23505") {
+            return res.status(409).json({
+                error: "Ese nombre de usuario ya está registrado"
+            });
+        }
+
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
+
+const getMati = async (req, res) => {
+    try {
+        const { nombre, password } = req.body ?? {};
+
+        if (!nombre || !password) {
+            return res.status(400).json({
+                error: "Faltan datos: nombre y contraseña son obligatorios"
+            });
+        }
+
+        const sesion = await usuarioService.autenticarUsuario(nombre, password);
+
+        if (!sesion) {
+            return res.status(401).json({
+                error: "Nombre de usuario o contraseña incorrectos"
+            });
+        }
+
+        res.json(sesion);
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: error.message
+        });
+    }
+};
+
 
 const escucho = async (req, res) => {
     try {
-        const result = await query(
-            `SELECT c.id, c.nombre, e.reproducciones
-             FROM escucha e
-             JOIN cancion c ON c.id = e.cancion_id
-             WHERE e.usuario_id = $1`,
-            [req.user.id]
-        );
+        const canciones = await escuchaService.listarEscuchas(req.user.id);
 
-        res.json(result.rows);
+        res.json(canciones);
 
     } catch (error) {
         console.error(error);
@@ -21,25 +77,19 @@ const escucho = async (req, res) => {
 };
 
 
-
-// EJERCICIO 5 NUEVAS FUNCIONES
+// EJERCICIO 5
 
 const createCancion = async (req, res) => { // UN ADMIN CREA UNA CANCION
     try {
-        const { nombre } = req.body;
+        const { nombre } = req.body ?? {};
 
         if (!nombre) {
             return res.status(400).json({ error: "Falta el nombre de la canción" });
         }
 
-        const result = await query(
-            `INSERT INTO cancion (nombre)
-             VALUES ($1)
-             RETURNING id, nombre`,
-            [nombre]
-        );
+        const cancion = await cancionService.crearCancion(nombre);
 
-        res.status(201).json(result.rows[0]);
+        res.status(201).json(cancion);
 
     } catch (error) {
         console.error(error);
@@ -48,28 +98,21 @@ const createCancion = async (req, res) => { // UN ADMIN CREA UNA CANCION
 };
 
 
-
 const updateCancion = async (req, res) => { // EL ADMIN MODIFICA EL NOMBRE DE LA CANCION
     try {
-        const { id, nombre } = req.body;
+        const { id, nombre } = req.body ?? {};
 
         if (!id || !nombre) {
             return res.status(400).json({ error: "Faltan datos: id y nombre son obligatorios" });
         }
 
-        const result = await query(
-            `UPDATE cancion
-             SET nombre = $1
-             WHERE id = $2
-             RETURNING id, nombre`,
-            [nombre, id]
-        );
+        const cancion = await cancionService.actualizarCancion(id, nombre);
 
-        if (result.rows.length === 0) {
+        if (!cancion) {
             return res.status(404).json({ error: "No existe una canción con ese id" });
         }
 
-        res.json(result.rows[0]);
+        res.json(cancion);
 
     } catch (error) {
         console.error(error);
@@ -80,24 +123,19 @@ const updateCancion = async (req, res) => { // EL ADMIN MODIFICA EL NOMBRE DE LA
 
 const deleteCancion = async (req, res) => { // EL ADMIN BORRA UNA CANCION
     try {
-        const { id } = req.body;
+        const { id } = req.body ?? {};
 
         if (!id) {
             return res.status(400).json({ error: "Falta el id de la canción" });
         }
 
-        const result = await query(
-            `DELETE FROM cancion
-             WHERE id = $1
-             RETURNING id, nombre`,
-            [id]
-        );
+        const cancion = await cancionService.borrarCancion(id);
 
-        if (result.rows.length === 0) {
+        if (!cancion) {
             return res.status(404).json({ error: "No existe una canción con ese id" });
         }
 
-        res.json({ mensaje: "Canción borrada", cancion: result.rows[0] });
+        res.json({ mensaje: "Canción borrada", cancion });
 
     } catch (error) {
         console.error(error);
@@ -113,54 +151,16 @@ const deleteCancion = async (req, res) => { // EL ADMIN BORRA UNA CANCION
 
 const registrarEscucha = async (req, res) => {
     try {
-        const { id } = req.body;          
-        const usuarioId = req.user.id;    
+        const { id } = req.body ?? {};    // id de la canción
+        const usuarioId = req.user.id;    // sale del token, NO del body
 
         if (!id) {
             return res.status(400).json({ error: "Falta el id de la canción" });
         }
 
-        const existente = await query(
-            `SELECT id FROM escucha
-             WHERE usuario_id = $1 AND cancion_id = $2`,
-            [usuarioId, id]
-        );
+        const escucha = await escuchaService.registrarEscucha(usuarioId, id);
 
-        let result;
-
-        if (existente.rows.length > 0) {
-            result = await query(
-                `UPDATE escucha
-                 SET reproducciones = reproducciones + 1
-                 WHERE id = $1
-                 RETURNING *`,
-                [existente.rows[0].id]
-            );
-        } else {
-            result = await query(
-                `INSERT INTO escucha (usuario_id, cancion_id, reproducciones)
-                 VALUES ($1, $2, 1)
-                 RETURNING *`,
-                [usuarioId, id]
-            );
-        }
-
-        const cantidad = await query(
-            `SELECT COUNT(*) FROM escucha
-             WHERE usuario_id = $1`,
-            [usuarioId]
-        );
-
-        if (Number(cantidad.rows[0].count) > 10) {
-            await query(
-                `UPDATE usuario
-                 SET fan = true
-                 WHERE id = $1`,
-                [usuarioId]
-            );
-        }
-
-        res.status(201).json(result.rows[0]);
+        res.status(201).json(escucha);
 
     } catch (error) {
         console.error(error);
@@ -173,9 +173,5 @@ const registrarEscucha = async (req, res) => {
     }
 };
 
-
-// CHEQUEA LOS NUMEROS DE ALGUNAS RESPUESTAS TIPO 409
-// LA ULTIMA FUNCION NO LA ENTENDI, VERIFICALA
-// HOSTEARLO EN VERCELL Y PONERLO LINDO
 
 export {  createUsuario, getMati, escucho, createCancion, updateCancion, deleteCancion, registrarEscucha };
