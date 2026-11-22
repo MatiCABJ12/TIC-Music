@@ -68,6 +68,11 @@ const escucho = async (req, res) => {
     try {
         const canciones = await escuchaService.listarEscuchas(req.user.id);
 
+        // Si todavía no escuchó nada, devuelve 0 en vez de una lista vacía
+        if (canciones.length === 0) {
+            return res.json(0);
+        }
+
         res.json(canciones);
 
     } catch (error) {
