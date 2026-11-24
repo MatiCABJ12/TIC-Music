@@ -10,8 +10,8 @@ const token = authHeader.split(' ')[1];
 try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload; //modifica el req agregando todo lo que viene en el token (id, nombre, rol)
-    next();
- } // Pasa al proximo middleware  
+    next(); // Pasa al proximo middleware 
+ } 
  catch (err) {
     console.error(err);
     return res.status(401).send({error: 'Unauthorized'});

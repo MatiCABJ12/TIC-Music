@@ -3,7 +3,6 @@ import * as usuarioService from "../services/usuarioService.js";
 import * as cancionService from "../services/cancionService.js";
 import * as escuchaService from "../services/escuchaService.js";
 
-
 const createUsuario = async (req, res) => {
     try {
         const { nombre, password } = req.body ?? {};
@@ -32,7 +31,6 @@ const createUsuario = async (req, res) => {
         });
     }
 };
-
 
 const getMati = async (req, res) => {
     try {
@@ -63,12 +61,10 @@ const getMati = async (req, res) => {
     }
 };
 
-
 const escucho = async (req, res) => {
     try {
         const canciones = await escuchaService.listarEscuchas(req.user.id);
 
-        // Si todavía no escuchó nada, devuelve 0 en vez de una lista vacía
         if (canciones.length === 0) {
             return res.json(0);
         }
@@ -80,7 +76,6 @@ const escucho = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 
 // EJERCICIO 5
 
@@ -101,7 +96,6 @@ const createCancion = async (req, res) => { // UN ADMIN CREA UNA CANCION
         res.status(500).json({ error: error.message });
     }
 };
-
 
 const updateCancion = async (req, res) => { // EL ADMIN MODIFICA EL NOMBRE DE LA CANCION
     try {
@@ -124,7 +118,6 @@ const updateCancion = async (req, res) => { // EL ADMIN MODIFICA EL NOMBRE DE LA
         res.status(500).json({ error: error.message });
     }
 };
-
 
 const deleteCancion = async (req, res) => { // EL ADMIN BORRA UNA CANCION
     try {
@@ -153,11 +146,10 @@ const deleteCancion = async (req, res) => { // EL ADMIN BORRA UNA CANCION
     }
 };
 
-
 const registrarEscucha = async (req, res) => {
     try {
-        const { id } = req.body ?? {};    // id de la canción
-        const usuarioId = req.user.id;    // sale del token, NO del body
+        const { id } = req.body ?? {};
+        const usuarioId = req.user.id;
 
         if (!id) {
             return res.status(400).json({ error: "Falta el id de la canción" });
@@ -177,6 +169,5 @@ const registrarEscucha = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 
 export {  createUsuario, getMati, escucho, createCancion, updateCancion, deleteCancion, registrarEscucha };
